@@ -146,7 +146,6 @@ static void data_from_raw_file (FD rawFd)
     unsigned char* out;
     static FD newServerFD;
 
-
     gVerbose = gXVerbose;
 
     while (true) {

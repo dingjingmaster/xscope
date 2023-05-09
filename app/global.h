@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <locale.h>
 #include <unistd.h>
 #include <stdlib.h>
