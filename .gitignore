@@ -1,7 +1,9 @@
+build-*/
 .idea/
 cmake-build-*/
 # Prerequisites
 *.d
+*.txt.user
 
 # Object files
 *.o
