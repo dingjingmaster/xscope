@@ -6,6 +6,7 @@
 #define XSCOPE_GLOBAL_H
 #include <ctype.h>
 #include <errno.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <locale.h>
 #include <unistd.h>
