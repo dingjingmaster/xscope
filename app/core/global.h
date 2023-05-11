@@ -4,6 +4,9 @@
 
 #ifndef XSCOPE_GLOBAL_H
 #define XSCOPE_GLOBAL_H
+#include <glib.h>
+
+#if 1
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -23,7 +26,28 @@
 
 #include "fd.h"
 #include "x11.h"
+#endif
 
+#define DEFAULT_PORT                6000
+
+// xscope server - start
+/**
+ * @brief
+ *  默认监听 6002 端口, 客户端访问X服务端的端口为：6000 + In port(1) + DISPLAY(1)
+ */
+static guint32 gXScopeServerPort        = 1;
+static guint32 gXScopeServerDisplay     = 1;
+static guint32 gXScopeDefaultPort       = 0;
+// xscope server - end
+
+// xserver - start
+static guint32 gXServerPort     = 0;
+static guint32 gXServerDisplay  = 1;
+static guint32 gXDefaultPort    = 0;
+// xserver - end
+
+
+#if 1
 // avoid conflicts with Solaris <sys/regset.h> #define of CS
 #undef CS
 extern struct ConnState*            CS;
@@ -71,5 +95,6 @@ static fd_set                       gBlockedReadDescriptors;
 static int                          gHighestFD;
 
 static long                         gServerBasePort = DEFAULT_PORT;
+#endif
 
 #endif //XSCOPE_GLOBAL_H

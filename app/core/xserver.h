@@ -5,10 +5,4 @@
 #ifndef XSCOPE_XSERVER_H
 #define XSCOPE_XSERVER_H
 
-
-class Xserver {
-
-};
-
-
 #endif //XSCOPE_XSERVER_H

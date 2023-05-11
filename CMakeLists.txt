@@ -18,11 +18,12 @@ add_definitions(
 find_package (PkgConfig)
 
 pkg_check_modules(GIO REQUIRED gio-2.0)
-pkg_check_modules(GTK2 REQUIRED gtk+-2.0)
-pkg_check_modules(LIBCURL REQUIRED libcurl)
-pkg_check_modules(THREAD REQUIRED gthread-2.0)
-pkg_check_modules(PROTOBUF REQUIRED protobuf)
-pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+pkg_check_modules(GLIB REQUIRED glib-2.0)
+#pkg_check_modules(GTK2 REQUIRED gtk+-2.0)
+#pkg_check_modules(LIBCURL REQUIRED libcurl)
+#pkg_check_modules(THREAD REQUIRED gthread-2.0)
+#pkg_check_modules(PROTOBUF REQUIRED protobuf)
+#pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 
 cmake_host_system_information(RESULT OS QUERY OS_NAME)
 MESSAGE(STATUS "OS name: ${OS}")

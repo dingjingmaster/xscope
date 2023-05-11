@@ -7,7 +7,6 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-#define DEFAULT_PORT                    6000
 #define BUFFER_SIZE                     (1024 * 32)
 
 

@@ -9,7 +9,7 @@
 #define __USE_BSD_SIGNAL
 #include <signal.h>
 
-#include "global.h"
+#include "core/global.h"
 
 #define debug(n, f)     (void)((gDebugLevel & n) ? (fprintf f, fflush(stderr)) : 0)
 
