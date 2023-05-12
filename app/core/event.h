@@ -12,26 +12,25 @@
 extern "C" {
 #endif
 
-typedef struct EventSource EventSource;
+typedef struct EventData            EventData;
 
-struct EventSource
+
+struct EventData
 {
-    gboolean (*prepare)  (GSource    *source,
-                          gint       *timeout_);/* Can be NULL */
-    gboolean (*check)    (GSource    *source);/* Can be NULL */
-    gboolean (*dispatch) (GSource    *source,
-                          GSourceFunc callback,
-                          gpointer    user_data);
-    void     (*finalize) (GSource    *source); /* Can be NULL */
+    GMutex                  lock;
+    GMainLoop*              mainLoop;
 
-    char*               name;               // 客户端进程名字
-    GSocket*            socket;
-    char*               buf;                // 读缓存区
+    GSocket*                xClient;
+    GSocket*                xServer;
 };
 
+void event_stop (EventData* ev);
 
-EventSource* event_source_create (const char* name, GSocket* socket);
-void event_source_destroy (EventSource* ev);
+void event_read_from_xclient (EventData* ev, gchar** buf, gsize* bufLen, GError** error);
+void event_read_from_xserver (EventData* ev, gchar** buf, gsize* bufLen, GError** error);
+
+void event_write_to_xserver (EventData* ev, const gchar* buf, gsize bufLen);
+void event_write_to_xclient (EventData* ev, const gchar* buf, gsize bufLen);
 
 
 #ifdef __cplusplus

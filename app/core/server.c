@@ -16,14 +16,17 @@
 #include "core-log.h"
 
 
+
 static GSocket*             gXScopeServer = NULL;
 static GSocketListener*     gXServer = NULL;
 
 
+static void set_socket (int fd);
 static GSocket* get_x_server_socket ();
-static void set_client_socket (int fd);
 static void scope_x_proto (gpointer data, gpointer udata);
-static gsize read_all_data (GSocket* fr, char** out/*out*/);
+//static gsize read_all_data (GSocket* fr, char** out/*out*/);
+static gboolean xclient_read(GIOChannel* src, GIOCondition cond, gpointer data);
+static gboolean xserver_read(GIOChannel* src, GIOCondition cond, gpointer data);
 static inline struct sockaddr_in get_scope_server_addr (const char* host, guint32 port);
 static gboolean new_client_connect (GSocketService* ls, GSocketConnection* conn, GObject* srcObj, gpointer uData);
 
@@ -112,91 +115,44 @@ static inline struct sockaddr_in get_scope_server_addr (const char* host, guint3
 
 static void scope_x_proto (gpointer data, gpointer udata)
 {
-    gsize strLen = 0;
-    g_autoptr(GError) error = NULL;
-    g_autofree char* binStr = NULL;
     GSocketConnection* conn = (GSocketConnection*) data;
     GSocket* socket = g_socket_connection_get_socket (conn);
     g_autoptr(GSocket) xServerSocket = get_x_server_socket();
 
-    set_client_socket (g_socket_get_fd (socket));
+    set_socket (g_socket_get_fd (socket));
+    set_socket (g_socket_get_fd (xServerSocket));
 
-    g_socket_set_blocking (socket, false);
-    g_socket_set_blocking (xServerSocket, false);
+    g_socket_set_blocking (socket, true);
+    g_socket_set_blocking (xServerSocket, true);
 
     g_socket_set_keepalive (socket, true);
     g_socket_set_keepalive (xServerSocket, true);
 
-#if 1
-    g_autoptr(GMainLoop) main = NULL;
-    g_autoptr(GMainContext) ctx = NULL;
-    g_autoptr(GSource) xClientSource = NULL;
-    g_autoptr(GSource) xServerSource = NULL;
+    g_autoptr(GMainContext) ctx = g_main_context_new ();
+    g_autoptr(GMainLoop) main = g_main_loop_new (ctx, false);
 
-    EventSource* clientEV = event_source_create (NULL, socket);
-    if (NULL == clientEV) {
-        g_warning("create client event error!");
-        goto out;
-    }
+    EventData event = {
+        .mainLoop = main,
+        .xServer = xServerSocket,
+        .xClient = socket,
+    };
+    g_mutex_init (&(event.lock));
 
-    EventSource* serverEV = event_source_create (NULL, socket);
-    if (NULL == serverEV) {
-        g_warning("create server event error!");
-        goto out;
-    }
+    g_autoptr(GIOChannel) clientIO = g_io_channel_unix_new (g_socket_get_fd(socket));
+    g_autoptr(GIOChannel) serverIO = g_io_channel_unix_new (g_socket_get_fd(xServerSocket));
 
-    ctx = g_main_context_new ();
-    main = g_main_loop_new (ctx, false);
-    xClientSource = g_source_new (clientEV, sizeof (GSource));
-    xServerSource = g_source_new (serverEV, sizeof (GSource));
+    g_autoptr(GSource) clientSource = g_io_create_watch (clientIO, G_IO_IN | G_IO_ERR);
+    g_source_set_callback (clientSource, G_SOURCE_FUNC(xclient_read), &event, NULL);
 
-    g_source_attach (xClientSource, ctx);
-    g_source_attach (xServerSource, ctx);
+    g_autoptr(GSource) serverSource = g_io_create_watch (serverIO, G_IO_IN | G_IO_ERR);
+    g_source_set_callback (serverSource, G_SOURCE_FUNC(xserver_read), &event, NULL);
+
+    g_source_attach (clientSource, ctx);
+    g_source_attach (serverSource, ctx);
 
     g_main_loop_run (main);
 
-out:
-    if (clientEV) event_source_destroy (clientEV);
-    if (serverEV) event_source_destroy (serverEV);
-
-#else
-
-    while (true) {
-        if (g_socket_is_closed (socket)) {
-            g_info("x client close");
-            break;
-        }
-
-        if (g_socket_is_closed (xServerSocket)) {
-            g_info("x server close");
-            break;
-        }
-
-        // client
-        strLen = read_all_data (socket, &binStr);
-        if (strLen > 0) {
-            g_info("XClient To XServer[%d]:\n%s\n", strLen, binStr);
-
-            g_socket_send_with_blocking(xServerSocket, binStr, strLen, true, NULL, &error);
-            if (error) {
-                g_warning("xclient write to xserver error: '%s'", error->message);
-                break;
-            }
-        }
-
-        //
-        strLen = read_all_data (xServerSocket, &binStr);
-        if (strLen > 0) {
-            g_info("XServer To XClient[%d]:\n%s\n", strLen, binStr);
-
-            g_socket_send_with_blocking(socket, binStr, strLen, true, NULL, &error);
-            if (error) {
-                g_warning("xserver write to xclient error: '%s'", error->message);
-                break;
-            }
-        }
-    }
-#endif
+    // free
 }
 
 static GSocket* get_x_server_socket ()
@@ -274,52 +230,87 @@ gboolean new_client_connect (GSocketService* ls, GSocketConnection* conn, GObjec
     return true;
 }
 
-static gsize read_all_data(GSocket* fr, char** out/*out*/)
-{
-    g_return_val_if_fail(out, 0);
 
-    gsize len = 0;
-    char* str = NULL;
-    g_autoptr (GError) error = NULL;
-
-    gsize readLen;
-    char buf[1024] = {0};
-
-    while ((readLen = g_socket_receive(fr, buf, sizeof(buf) - 1, NULL, &error)) > 0) {
-        if (error) {
-            g_warning("error: %s", error->message);
-            break;
-        }
-
-        char* tmp = (gchar*) malloc (sizeof (char) * (len + readLen + 1));
-        if (!tmp) {
-            g_warning("malloc error!");
-            break;
-        }
-        if (str && len > 0) {
-            memcpy (tmp, str, len);
-            g_free (str);
-        }
-        memcpy (tmp + len, buf, readLen);
-        str = tmp;
-        len += readLen;
-
-        if (readLen < sizeof (buf) - 1) {
-            break;
-        }
-    }
-
-    if (*out) g_free (*out);
-    *out = str;
-
-    return len;
-}
-
-static void set_client_socket (int fd)
+static void set_socket (int fd)
 {
     int tmp = 1;
     (void) setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *) &tmp, sizeof(int));
 
     struct linger linger = {.l_onoff = 0, linger.l_linger = 0};
     (void) setsockopt(fd, SOL_SOCKET, SO_LINGER, (char *) &linger, sizeof linger);
+}
+
+static gboolean xclient_read(GIOChannel* src, GIOCondition cond, gpointer data)
+{
+    (void) src;
+
+    EventData* ed = (EventData*) (data);
+
+    switch (cond) {
+        case G_IO_IN: {
+            gsize dataLen = 0;
+            g_autofree gchar* data = NULL;
+            g_autoptr(GError) error = NULL;
+
+            event_read_from_xclient (ed, &data, &dataLen, &error);
+            if (error) {
+                g_warning("XClient To XServer[ERR]: '%s'", error->message);
+                event_stop (ed);
+                return false;
+            }
+
+            // FIXME:// client send
+            if (dataLen == 0) return true;
+
+            g_info("XClient To XServer[%d]:\n%s\n", dataLen, data);
+
+            event_write_to_xserver (ed, data, dataLen);
+
+            break;
+        }
+        case G_IO_PRI:
+        case G_IO_OUT:
+        case G_IO_ERR:
+        case G_IO_HUP:
+        case G_IO_NVAL:
+        default: {
+            break;
+        }
+    }
+    return true;
+}
+
+static gboolean xserver_read(GIOChannel* src, GIOCondition cond, gpointer data)
+{
+    EventData* ed = (EventData*) (data);
+
+    switch (cond) {
+        case G_IO_IN: {
+            gsize dataLen = 0;
+            g_autofree gchar* data = NULL;
+            g_autoptr(GError) error = NULL;
+
+            event_read_from_xserver (ed, &data, &dataLen, &error);
+            if (error) {
+                g_warning("XServer To XClient[ERR]: '%s'", error->message);
+                event_stop (ed);
+                return false;
+            }
+
+            g_info("XServer To XClient[%d]:\n%s\n", dataLen, data);
+
+            event_write_to_xclient (ed, data, dataLen);
+
+            break;
+        }
+        case G_IO_PRI:
+        case G_IO_OUT:
+        case G_IO_ERR:
+        case G_IO_HUP:
+        case G_IO_NVAL:
+        default: {
+            break;
+        }
+    }
+    return true;
 }
