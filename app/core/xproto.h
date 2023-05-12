@@ -1,11 +1,15 @@
 //
-// Created by dingjing on 23-5-8.
+// Created by dingjing on 23-5-12.
 //
 
-#ifndef XSCOPE_X11_H
-#define XSCOPE_X11_H
+#ifndef XSCOPE_XPROTO_H
+#define XSCOPE_XPROTO_H
+#include <glib.h>
 #include <stdbool.h>
 #include <inttypes.h>
+
+#include "global.h"
+
 
 /* Built-in Types */
 #define BYTE 1                  /* 8-bit value */
@@ -238,19 +242,115 @@
 
 
 /* Types of Types */
-
-#define BUILTIN    1
-#define ENUMERATED 2
-#define SET        3
-#define RECORD     5
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#ifndef TRUE
-#define TRUE 1
-#endif
+#define BUILTIN         1
+#define ENUMERATED      2
+#define SET             3
+#define RECORD          5
 
 
-#endif //XSCOPE_X11_H
+
+
+typedef struct TypeDef              TypeDef;
+typedef struct ValueListEntry       ValueListEntry;
+typedef struct TypeDef*             Type;
+typedef struct ConnState            ConnState;
+
+
+typedef int (*PrintProcType) (const unsigned char *);
+
+struct ValueListEntry
+{
+    struct ValueListEntry*  next;
+    const char*             name;
+    short                   type;
+    short                   length;
+    long                    value;
+};
+
+
+struct TypeDef
+{
+    const char*             name;
+    short                   type;               // BUILTIN, ENUMERATED, SET, or RECORD
+    struct ValueListEntry*  valueList;
+    PrintProcType           printProc;
+};
+
+struct ConnState
+{
+    unsigned char*          savedBytes;
+    int                     littleEndian;
+    int                     bigReqEnabled;
+    long                    requestLen;
+    long                    sizeOfSavedBytes;
+    long                    numberOfSavedBytes;
+
+    long                    numberOfBytesNeeded;
+    long                    numberOfBytesProcessed;
+    long (*byteProcessing)  (int fd, const unsigned char *buf, long n);
+
+    long                    sequenceNumber;
+};
+
+
+
+static inline long pad(long n)
+{
+    /* round up to next multiple of 4 */
+    return ((n + 3) & ~0x3);
+}
+
+static inline uint32_t ILong(const unsigned char buf[])
+{
+    /* check for byte-swapping */
+    if (gLittleEndian) {
+        return ((buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0]);
+    }
+
+    return ((buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3]);
+}
+
+static inline uint16_t IShort(const unsigned char buf[])
+{
+    /* check for byte-swapping */
+    if (gLittleEndian) {
+        return (buf[1] << 8) | buf[0];
+    }
+
+    return ((buf[0] << 8) | buf[1]);
+}
+
+static inline uint16_t IChar2B(const unsigned char buf[])
+{
+    /* CHAR2B is like an IShort, but not byte-swapped */
+    return ((buf[0] << 8) | buf[1]);
+}
+
+static inline uint8_t IByte(const unsigned char buf[])
+{
+    return (buf[0]);
+}
+
+static inline bool IBool(const unsigned char buf[])
+{
+    if (buf[0] != 0) {
+        return (true);
+    }
+    else {
+        return (false);
+    }
+}
+
+
+
+
+
+void xproto_init ();
+void xproto_print (const guchar* buf, gsize len);
+
+
+
+Type define_type(short typeID, short class, const char *name, int (*printProc) (const unsigned char *));
+
+
+#endif //XSCOPE_XPROTO_H

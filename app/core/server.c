@@ -5,11 +5,13 @@
 #include "server.h"
 
 #include <netdb.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <sys/un.h>             /* struct sockaddr_un */
 #include <gio/gio.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>         /* struct sockaddr_in */
+#include <netinet/tcp.h>
 
 #include "event.h"
 #include "global.h"
@@ -122,12 +124,6 @@ static void scope_x_proto (gpointer data, gpointer udata)
     set_socket (g_socket_get_fd (socket));
     set_socket (g_socket_get_fd (xServerSocket));
 
-    g_socket_set_blocking (socket, true);
-    g_socket_set_blocking (xServerSocket, true);
-
-    g_socket_set_keepalive (socket, true);
-    g_socket_set_keepalive (xServerSocket, true);
-
     g_autoptr(GMainContext) ctx = g_main_context_new ();
     g_autoptr(GMainLoop) main = g_main_loop_new (ctx, false);
 
@@ -238,6 +234,9 @@ static void set_socket (int fd)
 
     struct linger linger = {.l_onoff = 0, linger.l_linger = 0};
     (void) setsockopt(fd, SOL_SOCKET, SO_LINGER, (char *) &linger, sizeof linger);
+
+    (void) fcntl(fd, F_SETFL, O_NONBLOCK);
+    (void) fcntl(fd, F_SETFD, FD_CLOEXEC);
 }
 
 static gboolean xclient_read(GIOChannel* src, GIOCondition cond, gpointer data)

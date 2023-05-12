@@ -11,6 +11,7 @@
 #include "common.h"
 
 #include "server.h"
+#include "xproto.h"
 
 #if 0
 static void setup_stdin ();
@@ -57,30 +58,9 @@ int main (int argc, char* argv[])
 
     setlocale(LC_CTYPE, "");
 
+    xproto_init();
 
     server_init (NULL, -1);
-
-//    initialize_fd();
-//    initialize_x11();
-//
-//    if (gDoAudio) {
-//        initialize_audio();
-//    }
-//    setup_stdin();
-//    if (gRawFile) {
-//        setup_raw_file(gRawFile);
-//    }
-//    else {
-//        setup_connection_socket (get_scope_port(), new_connection);
-//        if (gDoAudio) {
-//            setup_connection_socket (2000 + get_scope_port(), new_audio);
-//        }
-//    }
-//
-//    //
-//    set_signal_handling();
-//
-//    return main_loop();
 
     g_main_loop_run (app);
 

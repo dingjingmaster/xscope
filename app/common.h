@@ -11,7 +11,7 @@
 
 #include "core/global.h"
 
-#define debug(n, f)     (void)((gDebugLevel & n) ? (fprintf f, fflush(stderr)) : 0)
+//#define debug(n, f)     (void)((gDebugLevel & n) ? (fprintf f, fflush(stderr)) : 0)
 
 void enter_procedure (const char* s);
 

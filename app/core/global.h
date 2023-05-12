@@ -5,8 +5,9 @@
 #ifndef XSCOPE_GLOBAL_H
 #define XSCOPE_GLOBAL_H
 #include <glib.h>
+#include <stdbool.h>
 
-#if 1
+#if 0
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -30,6 +31,9 @@
 
 #define DEFAULT_PORT                6000
 
+#define PRINT_SERVER                5               // indent output as if it comes from server
+#define PRINT_CLIENT                1               // indent output as if it comes from client
+
 // xscope server - start
 /**
  * @brief
@@ -46,8 +50,10 @@ static guint32 gXServerDisplay  = 1;
 static guint32 gXDefaultPort    = 0;
 // xserver - end
 
+static bool gLittleEndian = false;
 
-#if 1
+
+#if 0
 // avoid conflicts with Solaris <sys/regset.h> #define of CS
 #undef CS
 extern struct ConnState*            CS;
