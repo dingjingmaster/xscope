@@ -5,11 +5,7 @@
 #include <string.h>
 #include <locale.h>
 
-#include "fd.h"
-#include "proto.h"
 #include "global.h"
-#include "common.h"
-
 #include "server.h"
 #include "xproto.h"
 

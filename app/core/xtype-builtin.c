@@ -7,6 +7,8 @@
 #include <stdio.h>
 
 #include "xproto.h"
+#include "print/print-type.h"
+#include "decode/decode_x11.h"
 
 
 int print_INT8      (const unsigned char *buf);
@@ -163,7 +165,7 @@ int print_CHAR8(const unsigned char *buf)
     /* print a CHAR8 -- 8-bit character */
     unsigned short n = IByte(buf);
 
-    fprintf(stdout, "%s", printrep(n));
+    fprintf(stdout, "%s", print_rep(n));
     return (1);
 }
 
@@ -172,7 +174,7 @@ int print_STRING16(const unsigned char *buf)
     /* print a CHAR2B -- 16-bit character which is never byte-swapped */
     unsigned short n = IChar2B(buf);
 
-    fprintf(stdout, "%s", printrep(n));
+    fprintf(stdout, "%s", print_rep(n));
     return 2 + n;
 }
 
@@ -185,7 +187,7 @@ int print_STR(const unsigned char *buf)
 
     n = IByte(buf++);
     for (i = 0; i < n; i++)
-        fprintf(stdout, "%s", printrep(buf[i]));
+        fprintf(stdout, "%s", print_rep(buf[i]));
     return (n + 1);
 }
 
@@ -346,7 +348,7 @@ int print_ATOM(const unsigned char *buf)
 {
     /* print a ATOM -- CARD32 plus 0 = None */
     long n = ILong(buf);
-    const char *name = FindAtomName(n);
+    const char *name = find_atom_name (n);
 
     if (name != NULL) {
         fprintf(stdout, "ATM %08lx <%s>", n, name);
@@ -435,7 +437,7 @@ int print_KEYCODE(const unsigned char *buf)
     /* print a KEYCODE -- CARD8 */
     unsigned short n = IByte(buf);
 
-    fprintf(stdout, "%d (%s)", n, printrep(n));
+    fprintf(stdout, "%d (%s)", n, print_rep(n));
     return (1);
 }
 
@@ -456,7 +458,7 @@ int print_BUTTON(const unsigned char *buf)
     /* print a BUTTON -- CARD8 */
     unsigned short n = IByte(buf);
 
-    fprintf(stdout, "%d (%s)", n, printrep(n));
+    fprintf(stdout, "%d (%s)", n, print_rep(n));
     return 1;
 }
 
@@ -475,7 +477,7 @@ int print_BUTTONA(const unsigned char *buf)
 int print_EVENTFORM(const unsigned char *buf)
 {
     /* print an EVENT_FORM -- event format */
-    DecodeEvent(-1, buf, (long) -1);
+    decode_event(-1, buf, (long) -1);
     return 32;
 }
 

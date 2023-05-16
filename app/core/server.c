@@ -14,9 +14,11 @@
 #include <netinet/tcp.h>
 
 #include "event.h"
+#include "io/io.h"
 #include "global.h"
 #include "core-log.h"
-
+#include "conn-context.h"
+#include "decode/decode.h"
 
 
 static GSocket*             gXScopeServer = NULL;
@@ -124,31 +126,44 @@ static void scope_x_proto (gpointer data, gpointer udata)
     set_socket (g_socket_get_fd (socket));
     set_socket (g_socket_get_fd (xServerSocket));
 
-    g_autoptr(GMainContext) ctx = g_main_context_new ();
-    g_autoptr(GMainLoop) main = g_main_loop_new (ctx, false);
+    ConnContext* cc = conn_context_new();
 
-    EventData event = {
-        .mainLoop = main,
-        .xServer = xServerSocket,
-        .xClient = socket,
-    };
-    g_mutex_init (&(event.lock));
+//    g_autoptr(GMainContext) ctx = g_main_context_new ();
+//    g_autoptr(GMainLoop) main = g_main_loop_new (ctx, false);
+
+    // free
+//    IOContext* ioContext = g_malloc0 (sizeof (IOContext));
+
+//    EventData event = {
+//        .mainLoop = main,
+//        .xServer = xServerSocket,
+//        .xClient = socket,
+//        .ioContext = ioContext
+//    };
+//    g_mutex_init (&(event.lock));
 
     g_autoptr(GIOChannel) clientIO = g_io_channel_unix_new (g_socket_get_fd(socket));
     g_autoptr(GIOChannel) serverIO = g_io_channel_unix_new (g_socket_get_fd(xServerSocket));
 
     g_autoptr(GSource) clientSource = g_io_create_watch (clientIO, G_IO_IN | G_IO_ERR);
-    g_source_set_callback (clientSource, G_SOURCE_FUNC(xclient_read), &event, NULL);
+    g_source_set_callback (clientSource, G_SOURCE_FUNC(xclient_read), cc, NULL);
 
     g_autoptr(GSource) serverSource = g_io_create_watch (serverIO, G_IO_IN | G_IO_ERR);
-    g_source_set_callback (serverSource, G_SOURCE_FUNC(xserver_read), &event, NULL);
+    g_source_set_callback (serverSource, G_SOURCE_FUNC(xserver_read), cc, NULL);
 
-    g_source_attach (clientSource, ctx);
-    g_source_attach (serverSource, ctx);
+    conn_context_add_gsource (cc, clientSource);
+    conn_context_add_gsource (cc, serverSource);
 
-    g_main_loop_run (main);
+
+    IOContext* ic = (IOContext*) g_malloc0 (sizeof (IOContext));
+    ic->xClient.xIO = socket;
+    ic->xServer.xIO = xServerSocket;
+    conn_context_set_data (cc, ic);
+
+    conn_context_run(cc);
 
     // free
+    conn_context_free (&cc);
 }
 
 static GSocket* get_x_server_socket ()
@@ -158,13 +173,13 @@ static GSocket* get_x_server_socket ()
     g_autoptr(GError) error = NULL;
 
     saun.sun_family = AF_UNIX;
-    snprintf (saun.sun_path, sizeof(saun.sun_path) - 1, "/tmp/.X11-unix/X%d", gXDefaultPort - DEFAULT_PORT);
+    g_snprintf (saun.sun_path, sizeof(saun.sun_path) - 1, "/tmp/.X11-unix/X%d", gXDefaultPort - DEFAULT_PORT);
     unsigned long salen = sizeof (saun.sun_family) + strlen (saun.sun_path) + 1;
     saddr = (struct sockaddr*) &saun;
 
     int serverFd = socket(saddr->sa_family, SOCK_STREAM, 0);
     if (serverFd < 0) {
-        perror("socket() to Server failed");
+        g_error("socket() to Server failed");
         panic("Can't open connection to Server\n");
     }
     (void) setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, (char *) NULL, 0);
@@ -243,27 +258,28 @@ static gboolean xclient_read(GIOChannel* src, GIOCondition cond, gpointer data)
 {
     (void) src;
 
-    EventData* ed = (EventData*) (data);
+    ConnContext* connCtx = (ConnContext*) (data);
 
     switch (cond) {
         case G_IO_IN: {
-            gsize dataLen = 0;
-            g_autofree gchar* data = NULL;
             g_autoptr(GError) error = NULL;
 
-            event_read_from_xclient (ed, &data, &dataLen, &error);
+            IOContext* ioCtx = conn_context_peek_data (connCtx);
+            const IOCache* client = &ioCtx->xClient;
+
+            io_cache_read_from_xclient (ioCtx, &error);
             if (error) {
                 g_warning("XClient To XServer[ERR]: '%s'", error->message);
-                event_stop (ed);
+                conn_context_quit(connCtx);
                 return false;
             }
 
-            // FIXME:// client send
-            if (dataLen == 0) return true;
+            if (!io_cache_is_valid (ioCtx) || !decode_x_client (ioCtx)) {
+                g_info("XClient Closed!");
+                return false;
+            }
 
-            g_info("XClient To XServer[%d]:\n%s\n", dataLen, data);
-
-            event_write_to_xserver (ed, data, dataLen);
+            g_info("XClient To XServer[%-ld %s]:\n%s\n", client->xReadCacheLen, (client->xReadCacheLen > 1 ? "bytes" : "byte"), client->xParsedReadStr);
 
             break;
         }
@@ -281,35 +297,43 @@ static gboolean xclient_read(GIOChannel* src, GIOCondition cond, gpointer data)
 
 static gboolean xserver_read(GIOChannel* src, GIOCondition cond, gpointer data)
 {
-    EventData* ed = (EventData*) (data);
-
-    switch (cond) {
-        case G_IO_IN: {
-            gsize dataLen = 0;
-            g_autofree gchar* data = NULL;
-            g_autoptr(GError) error = NULL;
-
-            event_read_from_xserver (ed, &data, &dataLen, &error);
-            if (error) {
-                g_warning("XServer To XClient[ERR]: '%s'", error->message);
-                event_stop (ed);
-                return false;
-            }
-
-            g_info("XServer To XClient[%d]:\n%s\n", dataLen, data);
-
-            event_write_to_xclient (ed, data, dataLen);
-
-            break;
-        }
-        case G_IO_PRI:
-        case G_IO_OUT:
-        case G_IO_ERR:
-        case G_IO_HUP:
-        case G_IO_NVAL:
-        default: {
-            break;
-        }
-    }
+    return false;
+//
+//    EventData* ed = (EventData*) (data);
+//
+//    switch (cond) {
+//        case G_IO_IN: {
+//            gsize dataLen = 0;
+//            g_autofree gchar* data = NULL;
+//            g_autoptr(GError) error = NULL;
+//            g_autofree gchar* parsedData = NULL;
+//
+//            event_read_from_xserver (ed, &data, &dataLen, &error);
+//            if (error) {
+//                g_warning("XServer To XClient[ERR]: '%s'", error->message);
+//                event_stop (ed);
+//                return false;
+//            }
+//
+//            if (!decode_x_server (data, dataLen, &parsedData)
+//                || !event_write_to_xclient (ed, data, dataLen)
+//                || !G_IS_SOCKET(ed->xServer) || g_socket_is_closed (ed->xServer)
+//                || !G_IS_SOCKET(ed->xClient) || g_socket_is_closed (ed->xClient)) {
+//                return false;
+//            }
+//
+//            g_info("XServer To XClient[%-ld %s]:\n%s\n", dataLen, (dataLen > 1 ? "bytes" : "byte"), parsedData);
+//
+//            break;
+//        }
+//        case G_IO_PRI:
+//        case G_IO_OUT:
+//        case G_IO_ERR:
+//        case G_IO_HUP:
+//        case G_IO_NVAL:
+//        default: {
+//            break;
+//        }
+//    }
     return true;
 }

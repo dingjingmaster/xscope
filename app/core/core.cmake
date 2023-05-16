@@ -11,11 +11,20 @@ file(GLOB CORE_SRC
         ${CMAKE_SOURCE_DIR}/app/core/xproto.h
         ${CMAKE_SOURCE_DIR}/app/core/xproto.c
 
+        ${CMAKE_SOURCE_DIR}/app/core/conn-context.h
+        ${CMAKE_SOURCE_DIR}/app/core/conn-context.c
+
         ${CMAKE_SOURCE_DIR}/app/core/xtype-builtin.h
         ${CMAKE_SOURCE_DIR}/app/core/xtype-builtin.c
 
+        ${CMAKE_SOURCE_DIR}/app/core/io/io.h
+        ${CMAKE_SOURCE_DIR}/app/core/io/io.c
+
         ${CMAKE_SOURCE_DIR}/app/core/print/print-type.h
         ${CMAKE_SOURCE_DIR}/app/core/print/print-type.c
+
+        ${CMAKE_SOURCE_DIR}/app/core/decode/decode.h
+        ${CMAKE_SOURCE_DIR}/app/core/decode/decode.c
 
         ${CMAKE_SOURCE_DIR}/app/core/decode/decode_x11.h
         ${CMAKE_SOURCE_DIR}/app/core/decode/decode_x11.c

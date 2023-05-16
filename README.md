@@ -27,3 +27,31 @@ xscope是一个程序，用于监视X11窗口服务器和客户机程序之间�
 X相关文档翻译项目：[https://github.com/dingjingmaster/x-doc](https://github.com/dingjingmaster/x-doc)
 
 
+##  x client 与 x server 通信
+
+### 1. x client 连接 x server
+
+```angular2html
+ 0.00: Client (pid 97079 x-draw-line.run) -->   48 bytes
+	          byte-order: LSB first
+	       major-version: 000b
+	       minor-version: 0000
+	authorization-protocol-name: "MIT-MAGIC-COOKIE-1"
+	authorization-protocol-data: "\230\270A^X^N\323^P^I\201^K\343\2153^A~1"
+ 0.00: 					14612 bytes <-- X11 Server (pid 1463 Xorg)
+					protocol-major-version: 000b
+					protocol-minor-version: 0000
+					      release-number: 00b8a590
+					    resource-id-base: 03c00000
+					    resource-id-mask: 001fffff
+					  motion-buffer-size: 00000100
+					    image-byte-order: LSB first
+					bitmap-format-bit-order: LSB first
+					bitmap-format-scanline-unit: 20
+					bitmap-format-scanline-pad: 20
+					         min-keycode: 8 (^H)
+					         max-keycode: 255 (\377)
+					              vendor: "The X.Org Foundation"
+					      pixmap-formats: (7)
+					               roots: (1)
+```

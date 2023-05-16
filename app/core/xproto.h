@@ -10,6 +10,12 @@
 
 #include "global.h"
 
+#define X_REQUEST_HEADER                "REQUEST"
+#define X_REPLY_HEADER                  "REPLY"
+#define X_EVENT_HEADER                  "XEVENT"
+
+#define PRINT_FIELD(a, b, c, d, e)      print_field (a, b, c, d, e)
+
 
 /* Built-in Types */
 #define BYTE 1                  /* 8-bit value */
@@ -342,15 +348,12 @@ static inline bool IBool(const unsigned char buf[])
 }
 
 
-
-
-
 void xproto_init ();
 void xproto_print (const guchar* buf, gsize len);
 
-
-
 Type define_type(short typeID, short class, const char *name, int (*printProc) (const unsigned char *));
+
+void x_query_version (const unsigned char* buf);
 
 
 #endif //XSCOPE_XPROTO_H
