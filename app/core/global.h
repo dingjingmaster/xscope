@@ -6,6 +6,7 @@
 #define XSCOPE_GLOBAL_H
 #include <glib.h>
 #include <stdbool.h>
+#include "proto/xproto.h"
 
 #if 0
 #include <ctype.h>
@@ -50,7 +51,9 @@ static guint32 gXServerDisplay  = 1;
 static guint32 gXDefaultPort    = 0;
 // xserver - end
 
-static bool gLittleEndian = false;
+static bool             gLittleEndian = false;
+
+extern TypeDef          gTD[MaxTypes];
 
 
 #if 0

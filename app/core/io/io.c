@@ -13,21 +13,24 @@ void io_cache_read_from_xclient(IOContext *ctx, GError **error)
 
     g_mutex_lock (&(ctx->xClient.lock));
 
-    g_autofree char* bin = NULL;
+    char* bin = NULL;
     gsize len = read_all_data (ctx->xClient.xIO, &bin, error);
-
     if (ctx->xClient.xReadCache) {
-        g_autofree char* bbin = (char*) g_malloc0 (len + ctx->xClient.xReadCacheLen);
+        char* bbin = (char*) g_malloc0 (len + ctx->xClient.xReadCacheLen + 1);
         if (NULL != bbin) {
             memcpy (bbin, ctx->xClient.xReadCache, ctx->xClient.xReadCacheLen);
+            g_free (ctx->xClient.xReadCache);
             ctx->xClient.xReadCacheLen += len;
-            memcpy (bbin + ctx->xClient.xReadCacheLen + 1, bin, ctx->xClient.xReadCacheLen);
+            memcpy (bbin + ctx->xClient.xReadCacheLen, bin, len);
             ctx->xClient.xReadCache = bbin;
         }
         else {
             g_free (ctx->xClient.xReadCache);
+            ctx->xClient.xReadCache = NULL;
             ctx->xClient.xReadCacheLen = 0;
         }
+
+        if (bin) {g_free (bin);}
     }
     else {
         ctx->xClient.xReadCache = bin;

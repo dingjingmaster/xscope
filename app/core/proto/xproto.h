@@ -8,14 +8,21 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-#include "global.h"
-
 #define X_REQUEST_HEADER                "REQUEST"
 #define X_REPLY_HEADER                  "REPLY"
 #define X_EVENT_HEADER                  "XEVENT"
 
 #define PRINT_FIELD(a, b, c, d, e)      print_field (a, b, c, d, e)
 
+#define CONST1(n)  CARD8
+#define CONST2(n)  CARD16
+#define CONST4(n)  CARD32
+
+/* Some field contents define the components of an expression */
+
+#define DVALUE1(expression)  CARD8
+#define DVALUE2(expression)  CARD16
+#define DVALUE4(expression)  CARD32
 
 /* Built-in Types */
 #define BYTE 1                  /* 8-bit value */
@@ -262,7 +269,7 @@ typedef struct TypeDef*             Type;
 typedef struct ConnState            ConnState;
 
 
-typedef int (*PrintProcType) (const unsigned char *);
+typedef char* (*GetProcValueByType) (const unsigned char *);
 
 struct ValueListEntry
 {
@@ -279,7 +286,7 @@ struct TypeDef
     const char*             name;
     short                   type;               // BUILTIN, ENUMERATED, SET, or RECORD
     struct ValueListEntry*  valueList;
-    PrintProcType           printProc;
+    GetProcValueByType      printProc;
 };
 
 struct ConnState
@@ -306,54 +313,14 @@ static inline long pad(long n)
     return ((n + 3) & ~0x3);
 }
 
-static inline uint32_t ILong(const unsigned char buf[])
-{
-    /* check for byte-swapping */
-    if (gLittleEndian) {
-        return ((buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0]);
-    }
-
-    return ((buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3]);
-}
-
-static inline uint16_t IShort(const unsigned char buf[])
-{
-    /* check for byte-swapping */
-    if (gLittleEndian) {
-        return (buf[1] << 8) | buf[0];
-    }
-
-    return ((buf[0] << 8) | buf[1]);
-}
-
-static inline uint16_t IChar2B(const unsigned char buf[])
-{
-    /* CHAR2B is like an IShort, but not byte-swapped */
-    return ((buf[0] << 8) | buf[1]);
-}
-
-static inline uint8_t IByte(const unsigned char buf[])
-{
-    return (buf[0]);
-}
-
-static inline bool IBool(const unsigned char buf[])
-{
-    if (buf[0] != 0) {
-        return (true);
-    }
-    else {
-        return (false);
-    }
-}
-
 
 void xproto_init ();
-void xproto_print (const guchar* buf, gsize len);
 
-Type define_type(short typeID, short class, const char *name, int (*printProc) (const unsigned char *));
+void define_evalue  (Type type, long value, const char* name);
+void define_values  (Type type, long value, short length, short ctype, const char *name);
+Type define_type    (short typeID, short class, const char* name, char* (*printProc) (const unsigned char *));
 
-void x_query_version (const unsigned char* buf);
+const char* get_key_string (unsigned short c);
 
 
 #endif //XSCOPE_XPROTO_H

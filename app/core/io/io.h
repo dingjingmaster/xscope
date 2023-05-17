@@ -14,7 +14,7 @@ typedef struct IOContext    IOContext;
 struct IOCache
 {
     GSocket*                xIO;
-    char*                   xReadCache;
+    unsigned char*          xReadCache;
     gsize                   xReadCacheLen;
 
     char*                   xWriteCache;

@@ -7,6 +7,8 @@
 #include <glib.h>
 
 #include "global.h"
+#include "../tools.h"
+#include "decode_x11.h"
 
 typedef enum XClientProcess             XClientProcess;
 typedef struct XClientDecodeContext     XClientDecodeContext;
@@ -67,6 +69,28 @@ char* start_setup_message (const char* buf, gsize bufLen)
 
 void xclient_start_setup_message (IOCache* cache, XClientDecodeContext* ctx)
 {
-    gLittleEndian = (cache->xReadCache[0] == 'l');
+    unsigned char* buf = cache->xReadCache;
 
+    g_return_if_fail(buf);
+
+    gLittleEndian = (buf[0] == 'l');
+
+    g_autofree char* byteOrder = decode_field (buf, 0, 1, BYTEMODE, "byte-order");
+    g_autofree char* majorVersion = decode_field (buf, 2, 2, CARD16, "major-version");
+    g_autofree char* minorVersion = decode_field (buf, 4, 2, CARD16, "minor-version");
+    g_autofree char* nameLenStr = decode_field (buf, 6, 2, DVALUE2(0), "length of name");
+    gsize nameLen = tools_short (&buf[6]);
+    g_autofree char* dataLenStr = decode_field (buf, 8, 2, DVALUE2(0), "length of name");
+    gsize dataLen = tools_short (&buf[8]);
+//    g_autofree char* authProtoName = decode_field (buf, 8, 2, DVALUE2(0), "length of name");
+
+    g_info("%s", byteOrder);
+    g_info("%s", majorVersion);
+    g_info("%s", minorVersion);
+    g_info("%s", nameLenStr);
+    g_info("%s", dataLenStr);
+
+
+    g_info("little: %s", gLittleEndian ? "true" : "false");
+    g_info("name len: %d, data len: %d", nameLen, dataLen);
 }

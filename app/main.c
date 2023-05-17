@@ -7,7 +7,7 @@
 
 #include "global.h"
 #include "server.h"
-#include "xproto.h"
+#include "proto/xproto.h"
 
 #if 0
 static void setup_stdin ();
