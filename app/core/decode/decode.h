@@ -19,7 +19,8 @@
  * @todo char** print 需要用结构化数据来代替
  */
 bool decode_x_client (IOContext* ioCtx);
-bool decode_x_server (const char* buf, gsize bufLen, char** print);
+
+bool decode_x_server (IOContext* ioCtx);
 
 
 #endif //XSCOPE_DECODE_H

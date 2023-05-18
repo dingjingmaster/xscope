@@ -16,10 +16,6 @@ struct IOCache
     GSocket*                xIO;
     unsigned char*          xReadCache;
     gsize                   xReadCacheLen;
-
-    char*                   xWriteCache;
-    gsize                   xWriteCacheLen;
-
     char*                   xParsedReadStr;
 
     void*                   uData;
@@ -34,6 +30,11 @@ struct IOContext
 };
 
 bool io_cache_is_valid (IOContext * ctx);
+
 void io_cache_read_from_xclient (IOContext* ctx, GError** error);
+void io_cache_write_to_xserver  (IOContext* ctx, GError** error);
+
+void io_cache_read_from_xserver (IOContext* ctx, GError** error);
+void io_cache_write_to_xclient  (IOContext* ctx, GError** error);
 
 #endif //XSCOPE_IO_H

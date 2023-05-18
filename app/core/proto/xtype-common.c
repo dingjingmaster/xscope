@@ -613,17 +613,14 @@ char *get_str_HOST(const unsigned char *buf)
 
 char *get_str_field_by_string8(const unsigned char *buf, int number, const char *name)
 {
-    if (number == 0) {
+    if (number == 0 || NULL == buf) {
         return NULL;
     }
 
-    bool has = false;
     GString* str = g_string_new (NULL);
     for (int i = 0; i < number; i++) {
-        if (has) {
-            g_string_append_c(str, ' ');
-        }
-        g_string_append(str, get_key_string (buf[i]));
+        const char* ss = get_key_string (buf[i]);
+        g_string_append(str, ss);
     }
 
     return g_string_free(str, false);
@@ -691,5 +688,105 @@ char *get_str_RGB(const unsigned char *buf)
 char *get_str_FORMAT(const unsigned char *buf)
 {
     g_autofree char* d = get_str_field_by_type (buf, 0, 1, CARD8, "depth");
-    return NULL;
+    g_autofree char* b = get_str_field_by_type (buf, 1, 1, CARD8, "bits-per-pixel");
+    g_autofree char* s = get_str_field_by_type (buf, 2, 1, CARD8, "scanline-pad");
+
+    return g_strdup_printf ("(depth: %s, bits-per-pixel: %s, scanline-pad: %s)", d, b, s);
+}
+
+char* get_str_SCREEN(const unsigned char *buf)
+{
+//    short n; /* number of elements in List of DEPTH */
+//    long m; /* length (in bytes) of List of DEPTH */
+
+    g_autofree char* rt = get_str_field_by_type (buf, 0, 4, WINDOW, "root");
+    g_autofree char* dc = get_str_field_by_type (buf, 4, 4, COLORMAP, "default-colormap");
+    g_autofree char* wp = get_str_field_by_type (buf, 8, 4, CARD32, "white-pixel");
+    g_autofree char* bp = get_str_field_by_type (buf, 12, 4, CARD32, "black-pixel");
+    g_autofree char* ci = get_str_field_by_type (buf, 16, 4, SETofEVENT, "current-input-masks");
+    g_autofree char* wi = get_str_field_by_type (buf, 20, 2, CARD16, "width-in-pixels");
+    g_autofree char* hi = get_str_field_by_type (buf, 22, 2, CARD16, "height-in-pixels");
+    g_autofree char* wm = get_str_field_by_type (buf, 24, 2, CARD16, "width-in-millimeters");
+    g_autofree char* hm = get_str_field_by_type (buf, 26, 2, CARD16, "height-in-millimeters");
+    g_autofree char* mi = get_str_field_by_type (buf, 28, 2, CARD16, "min-installed-maps");
+    g_autofree char* ma = get_str_field_by_type (buf, 30, 2, CARD16, "max-installed-maps");
+    g_autofree char* rv = get_str_field_by_type (buf, 32, 4, VISUALID, "root-visual");
+    g_autofree char* bs = get_str_field_by_type (buf, 36, 1, BACKSTORE, "backing-stores");
+    g_autofree char* su = get_str_field_by_type (buf, 37, 1, BOOL, "save-unders");
+    g_autofree char* rd = get_str_field_by_type (buf, 38, 1, CARD8, "root-depth");
+    g_autofree char* na = get_str_field_by_type (buf, 39, 1, CARD8, "number of allowed-depths");
+//    n = IByte(&buf[39]);
+//    m = PrintList(&buf[40], (long) n, DEPTH, "allowed-depths");
+//    return (40 + m);
+
+    return g_strdup_printf ("(root: %s, default-colormap: %s, white-pixel: %s, black-pixel: %s, "
+                            "current-input-masks: %s, width-in-pixels: %s, height-in-pixels: %s, "
+                            "width-in-millimeters: %s, height-in-millimeters: %s, "
+                            "min-installed-maps: %s, max-installed-maps: %s, "
+                            "root-visual: %s, backing-stores: %s, "
+                            "save-unders: %s, root-depth: %s, number of allowed-depths: %s)",
+                            rt, dc, wp, bp, ci, wi, hi, wm, hm, mi, ma, rv, bs, su, rd, na);
+}
+
+char* get_str_DEPTH (const unsigned char *buf)
+{
+//    short n; /* number of elements in List of VISUALTYPE */
+//    short m; /* length (in bytes) of List of VISUALTYPE */
+
+    g_autofree char* dp = get_str_field_by_type (buf, 0, 1, CARD8, "depth");
+    g_autofree char* nv = get_str_field_by_type (buf, 2, 2, DVALUE2(n), "number of visuals");
+//    n = IShort(&buf[2]);
+//    m = PrintList(&buf[8], (long) n, VISUALTYPE, "visuals");
+//    return (8 + m);
+    return g_strdup_printf ("(depth: %s, number of visuals: %s)", dp, nv);
+}
+
+char* get_str_VISUALTYPE (const unsigned char *buf)
+{
+    g_autofree char* vi = get_str_field_by_type(buf, 0, 4, VISUALID, "visual-id");
+    g_autofree char* cs = get_str_field_by_type(buf, 4, 1, COLORCLASS, "class");
+    g_autofree char* bp = get_str_field_by_type(buf, 5, 1, CARD8, "bits-per-rgb-value");
+    g_autofree char* ce = get_str_field_by_type(buf, 6, 2, CARD16, "colormap-entries");
+    g_autofree char* rm = get_str_field_by_type(buf, 8, 4, CARD32, "red-mask");
+    g_autofree char* gm = get_str_field_by_type(buf, 12, 4, CARD32, "green-mask");
+    g_autofree char* bm = get_str_field_by_type(buf, 16, 4, CARD32, "blue-mask");
+//    return (24);
+    return g_strdup_printf ("(visual-id: %s, class: %s, bits-per-rgb-value: %s, "
+                            "colormap-entries: %s, red-mask: %s, green-mask: %s, "
+                            "blue-mask: %s)", vi, cs, bp, ce, rm, gm, bm);
+}
+
+char *get_str_field_by_list(const unsigned char *buf, long number, short listType, const char *name)
+{
+    if (0 == number) {
+        return NULL;
+    }
+
+    GString* str = g_string_new (NULL);
+
+    for (int i = 0; i < number; ++i) {
+        long len = 0;
+        switch (gTD[listType].type) {
+            case BUILTIN:
+            case RECORD: {
+                g_autofree char* ll = (*gTD[listType].printProc) (buf);
+                len = (long) strlen (ll);
+                g_string_append(str, ll);
+                g_string_append(str, ", ");
+                break;
+            }
+            default:
+                g_string_append(str, "**INVALID**");
+                break;
+        }
+        buf = buf + len;
+    }
+
+    g_autofree char* strT = g_string_free(str, false);
+
+    if (g_str_has_suffix(strT, ", ")) {
+        strT[strlen (strT) - 2] = '\0';
+    }
+
+    return g_strdup_printf ("(%s: %s)", name, strT);
 }

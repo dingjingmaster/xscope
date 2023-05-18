@@ -60,12 +60,17 @@ char* get_str_SEGMENT       (const unsigned char* buf);
 char* get_str_COLORITEM     (const unsigned char* buf);
 char* get_str_RGB           (const unsigned char* buf);
 char* get_str_FORMAT        (const unsigned char* buf);
+char* get_str_SCREEN        (const unsigned char *buf);
+char* get_str_DEPTH         (const unsigned char *buf);
+char* get_str_VISUALTYPE    (const unsigned char *buf);
 
 
-char* get_str_SET           (const unsigned char *buf, short length, struct ValueListEntry *ValueList);
-char* get_str_ENUMERATED    (const unsigned char *buf, short length, struct ValueListEntry *ValueList);
+
+char* get_str_SET           (const unsigned char* buf, short length, struct ValueListEntry *ValueList);
+char* get_str_ENUMERATED    (const unsigned char* buf, short length, struct ValueListEntry *ValueList);
 
 char* get_str_field_by_string8      (const unsigned char* buf, int number, const char* name);
+char* get_str_field_by_list         (const unsigned char* buf, long number, short listType, const char* name);
 char* get_str_field_by_type         (const unsigned char *buf, short start, short length, short FieldType, const char *name);
 
 #ifdef __cplusplus

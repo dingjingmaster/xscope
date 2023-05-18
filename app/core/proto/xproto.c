@@ -9,6 +9,7 @@
 #include "core-log.h"
 #include "xtype-set.h"
 #include "xtype-values.h"
+#include "xtype-record.h"
 #include "xtype-builtin.h"
 #include "xtype-enumerated.h"
 
@@ -36,12 +37,12 @@ void xproto_init()
     xtype_enumerated_init();
     xtype_set_init();
     xtype_values_init();
-
+    xtype_record_init();
 }
 
 const char *get_key_string(unsigned short c)
 {
-    static char pr[8];
+    static char pr[8] = {0};
 
     if (c < 32) {
         /* control characters */
@@ -69,7 +70,8 @@ const char *get_key_string(unsigned short c)
     }
     else {
         /* very large number -- print as 0xffff - 4 digit hex */
-        snprintf(pr, sizeof(pr), "0x%04x", c);
+        memset (pr, 0, sizeof (pr));
+        snprintf(pr, sizeof(pr) - 1, "0x%04x", c);
     }
 
     return (pr);

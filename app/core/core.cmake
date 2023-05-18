@@ -1,5 +1,4 @@
 file(GLOB CORE_SRC
-        ${CMAKE_SOURCE_DIR}/app/core/global.h
         ${CMAKE_SOURCE_DIR}/app/core/core-log.h
 
         ${CMAKE_SOURCE_DIR}/app/core/event.h
@@ -10,6 +9,9 @@ file(GLOB CORE_SRC
 
         ${CMAKE_SOURCE_DIR}/app/core/server.h
         ${CMAKE_SOURCE_DIR}/app/core/server.c
+
+        ${CMAKE_SOURCE_DIR}/app/core/global.h
+        ${CMAKE_SOURCE_DIR}/app/core/global.c
 
         ${CMAKE_SOURCE_DIR}/app/core/proto/xproto.h
         ${CMAKE_SOURCE_DIR}/app/core/proto/xproto.c
@@ -28,6 +30,15 @@ file(GLOB CORE_SRC
 
         ${CMAKE_SOURCE_DIR}/app/core/decode/decode_x11.h
         ${CMAKE_SOURCE_DIR}/app/core/decode/decode_x11.c
+
+        ${CMAKE_SOURCE_DIR}/app/core/decode/decode-xclient.h
+        ${CMAKE_SOURCE_DIR}/app/core/decode/decode-xclient.c
+
+        ${CMAKE_SOURCE_DIR}/app/core/decode/decode-xserver.h
+        ${CMAKE_SOURCE_DIR}/app/core/decode/decode-xserver.c
+
+        ${CMAKE_SOURCE_DIR}/app/core/decode/decode-extensions.h
+        ${CMAKE_SOURCE_DIR}/app/core/decode/decode-extensions.c
 
 
         ${CMAKE_SOURCE_DIR}/app/core/proto/xtype-set.h

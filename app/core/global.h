@@ -51,9 +51,10 @@ static guint32 gXServerDisplay  = 1;
 static guint32 gXDefaultPort    = 0;
 // xserver - end
 
-static bool             gLittleEndian = false;
-
+extern bool             gLittleEndian;
 extern TypeDef          gTD[MaxTypes];
+extern unsigned char    gRBF[2];
+extern unsigned char    gSBF[4];
 
 
 #if 0

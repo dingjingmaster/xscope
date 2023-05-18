@@ -259,12 +259,12 @@ static gboolean xclient_read(GIOChannel* src, GIOCondition cond, gpointer data)
     (void) src;
 
     ConnContext* connCtx = (ConnContext*) (data);
+    IOContext* ioCtx = conn_context_peek_data (connCtx);
 
     switch (cond) {
         case G_IO_IN: {
             g_autoptr(GError) error = NULL;
 
-            IOContext* ioCtx = conn_context_peek_data (connCtx);
             const IOCache* client = &ioCtx->xClient;
 
             io_cache_read_from_xclient (ioCtx, &error);
@@ -278,8 +278,71 @@ static gboolean xclient_read(GIOChannel* src, GIOCondition cond, gpointer data)
                 g_info("XClient Closed!");
                 return false;
             }
-
             g_info("XClient To XServer[%-ld %s]:\n%s\n", client->xReadCacheLen, (client->xReadCacheLen > 1 ? "bytes" : "byte"), client->xParsedReadStr);
+            io_cache_write_to_xserver (ioCtx, &error);
+            if (error) {
+                g_warning("XClient To XServer[ERR]: '%s'", error->message);
+                conn_context_quit(connCtx);
+                return false;
+            }
+            break;
+        }
+        case G_IO_PRI:
+        case G_IO_OUT:
+        case G_IO_ERR:
+        case G_IO_HUP:
+        case G_IO_NVAL:
+        default: {
+            break;
+        }
+    }
+
+    if (!io_cache_is_valid (ioCtx)) {
+        g_info("XClient Closed!");
+        conn_context_quit(connCtx);
+        return false;
+    }
+
+    return true;
+}
+
+static gboolean xserver_read(GIOChannel* src, GIOCondition cond, gpointer data)
+{
+    (void) src;
+
+    ConnContext* connCtx = (ConnContext*) (data);
+    IOContext* ioCtx = conn_context_peek_data (connCtx);
+
+    switch (cond) {
+        case G_IO_IN: {
+            g_autoptr(GError) error = NULL;
+
+            const IOCache* server = &ioCtx->xServer;
+
+            io_cache_read_from_xserver(ioCtx, &error);
+            if (error) {
+                g_warning("XServer To XClient[ERR]: '%s'", error->message);
+                conn_context_quit(connCtx);
+                return false;
+            }
+
+            if (server->xReadCacheLen <= 0) {
+                g_warning("XServer read null");
+                conn_context_quit(connCtx);
+                return false;
+            }
+
+            if (!io_cache_is_valid (ioCtx) || !decode_x_server (ioCtx)) {
+                g_info("XServer Closed!");
+                return false;
+            }
+            g_info("XServer To XClient[%-ld %s]:\n%s\n", server->xReadCacheLen, (server->xReadCacheLen > 1 ? "bytes" : "byte"), server->xParsedReadStr);
+            io_cache_write_to_xclient(ioCtx, &error);
+            if (error) {
+                g_warning("XServer To XClient[ERR]: '%s'", error->message);
+                conn_context_quit(connCtx);
+                return false;
+            }
 
             break;
         }
@@ -292,48 +355,12 @@ static gboolean xclient_read(GIOChannel* src, GIOCondition cond, gpointer data)
             break;
         }
     }
-    return true;
-}
 
-static gboolean xserver_read(GIOChannel* src, GIOCondition cond, gpointer data)
-{
-    return false;
-//
-//    EventData* ed = (EventData*) (data);
-//
-//    switch (cond) {
-//        case G_IO_IN: {
-//            gsize dataLen = 0;
-//            g_autofree gchar* data = NULL;
-//            g_autoptr(GError) error = NULL;
-//            g_autofree gchar* parsedData = NULL;
-//
-//            event_read_from_xserver (ed, &data, &dataLen, &error);
-//            if (error) {
-//                g_warning("XServer To XClient[ERR]: '%s'", error->message);
-//                event_stop (ed);
-//                return false;
-//            }
-//
-//            if (!decode_x_server (data, dataLen, &parsedData)
-//                || !event_write_to_xclient (ed, data, dataLen)
-//                || !G_IS_SOCKET(ed->xServer) || g_socket_is_closed (ed->xServer)
-//                || !G_IS_SOCKET(ed->xClient) || g_socket_is_closed (ed->xClient)) {
-//                return false;
-//            }
-//
-//            g_info("XServer To XClient[%-ld %s]:\n%s\n", dataLen, (dataLen > 1 ? "bytes" : "byte"), parsedData);
-//
-//            break;
-//        }
-//        case G_IO_PRI:
-//        case G_IO_OUT:
-//        case G_IO_ERR:
-//        case G_IO_HUP:
-//        case G_IO_NVAL:
-//        default: {
-//            break;
-//        }
-//    }
+    if (!io_cache_is_valid (ioCtx)) {
+        g_info("XServer Closed!");
+        conn_context_quit(connCtx);
+        return false;
+    }
+
     return true;
 }
