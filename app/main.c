@@ -5,11 +5,11 @@
 #include <string.h>
 #include <locale.h>
 
+#include "fd.h"
+#include "proto.h"
 #include "global.h"
-#include "server.h"
-#include "proto/xproto.h"
+#include "common.h"
 
-#if 0
 static void setup_stdin ();
 static void setup_raw_file (const char* fileName);
 static void setup_raw_client (FD* returnClientFD, FD* returnServerFD);
@@ -36,7 +36,6 @@ static short get_scope_port (void);
 
 static void new_audio (FD fd);
 static void new_connection (FD fd);
-#endif
 
 /**
  * @brief
@@ -45,25 +44,31 @@ static void new_connection (FD fd);
 
 int main (int argc, char* argv[])
 {
-    (void) argc;
-    (void) argv;
-
-    g_autoptr(GMainLoop) app = g_main_loop_new (NULL, FALSE);
-
-    g_log_set_debug_enabled (true);
-
     setlocale(LC_CTYPE, "");
 
-    xproto_init();
+    initialize_fd();
+    initialize_x11();
 
-    server_init (NULL, -1);
+    if (gDoAudio) {
+        initialize_audio();
+    }
+    setup_stdin();
+    if (gRawFile) {
+        setup_raw_file(gRawFile);
+    }
+    else {
+        setup_connection_socket (get_scope_port(), new_connection);
+        if (gDoAudio) {
+            setup_connection_socket (2000 + get_scope_port(), new_audio);
+        }
+    }
 
-    g_main_loop_run (app);
+    //
+    set_signal_handling();
 
-    return 0;
+    return main_loop();
 }
 
-#if 0
 static void read_stdin (FD fd)
 {
     char buf[2048] = {0};
@@ -140,7 +145,6 @@ static void data_from_raw_file (FD rawFd)
     char* n = NULL;
     unsigned char* out;
     static FD newServerFD;
-
 
     gVerbose = gXVerbose;
 
@@ -400,5 +404,3 @@ static const char* client_name (FD fd)
 
     return name;
 }
-
-#endif
