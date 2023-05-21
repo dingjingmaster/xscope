@@ -9,6 +9,7 @@
 
 #include "tools.h"
 #include "global.h"
+#include "decode_x11.h"
 #include "decode-extensions.h"
 #include "proto/xtype-common.h"
 
@@ -110,65 +111,64 @@ void xserver_start_request_message(IOCache *cache)
 
     int req = (short) tools_short(&buf[0]);
     int reqMinor = req >= 128 ? tools_byte (&buf[1]) : 0;
-    unsigned long seq;
+    unsigned long seq = 0;
 
     if (98 == req) {
-        extensions_process_query_request(seq, buf);
+        extensions_process_query_request(buf);
     }
 
-    if (Request < 0 || 127 < Request) {
-        ExtensionRequest(fd, buf, Request);
+    if (req < 0 || 127 < req) {
+        extensions_request(buf, req);
     }
     else {
         switch (req) {
-
             case 1:
-                CreateWindow(fd, buf);
+                CreateWindow(buf);
                 break;
             case 2:
                 ChangeWindowAttributes(fd, buf);
                 break;
             case 3:
                 GetWindowAttributes(fd, buf);
-                ReplyExpected(fd, Request);
+//                ReplyExpected(Request);
                 break;
             case 4:
-                DestroyWindow(fd, buf);
+                DestroyWindow(buf);
                 break;
             case 5:
-                DestroySubwindows(fd, buf);
+                DestroySubwindows(buf);
                 break;
             case 6:
-                ChangeSaveSet(fd, buf);
+                ChangeSaveSet(buf);
                 break;
             case 7:
-                ReparentWindow(fd, buf);
+                ReparentWindow(buf);
                 break;
             case 8:
-                MapWindow(fd, buf);
+                MapWindow(buf);
                 break;
             case 9:
-                MapSubwindows(fd, buf);
+                MapSubwindows(buf);
                 break;
             case 10:
-                UnmapWindow(fd, buf);
+                UnmapWindow(buf);
                 break;
             case 11:
-                UnmapSubwindows(fd, buf);
+                UnmapSubwindows(buf);
                 break;
             case 12:
-                ConfigureWindow(fd, buf);
+                ConfigureWindow(buf);
                 break;
             case 13:
-                CirculateWindow(fd, buf);
+                CirculateWindow(buf);
                 break;
             case 14:
-                GetGeometry(fd, buf);
-                ReplyExpected(fd, Request);
+                GetGeometry(buf);
+//                ReplyExpected(fd, Request);
                 break;
             case 15:
-                QueryTree(fd, buf);
-                ReplyExpected(fd, Request);
+                QueryTree(buf);
+//                ReplyExpected(fd, Request);
                 break;
             case 16:
                 InternAtom(fd, buf);
@@ -523,7 +523,7 @@ void xserver_start_request_message(IOCache *cache)
                 NoOperation(fd, buf);
                 break;
             default:
-                warn("Unimplemented request opcode");
+                g_warning("Unimplemented request opcode");
                 break;
         }
     }

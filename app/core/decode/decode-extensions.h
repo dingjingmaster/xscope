@@ -16,6 +16,11 @@
 #define NUM_EXTENSIONS                          128     // maximum possible number of extensions
 #define NUM_EXT_EVENTS                          64      // maximum possible number of extension events
 
+typedef void (*ExtensionDecodeReqPtr)   (const unsigned char *buf);
+typedef void (*ExtensionDecodeErrorPtr) (const unsigned char *buf);
+typedef void (*ExtensionDecodeEventPtr) (const unsigned char *buf);
+typedef void (*ExtensionDecodeReplyPtr) (const unsigned char *buf, short RequestMinor);
+
 
 typedef struct ExtensionInfo                    ExtensionInfo;
 typedef struct ExtensionDecoders                ExtensionDecoders;
@@ -26,7 +31,7 @@ struct ExtensionInfo
     unsigned char           request;
     unsigned char           event;
     unsigned char           error;
-    long                    querySeq;       // sequence id of QueryExtension request
+//    long                    querySeq;       // sequence id of QueryExtension request
     ExtensionInfo*          next;
 };
 
@@ -40,8 +45,7 @@ struct ExtensionDecoders
 
 
 
-
-
-void extensions_process_query_request(long seq, const unsigned char *buf);
+void extensions_request(const unsigned char *buf, short req);
+void extensions_process_query_request(const unsigned char *buf);
 
 #endif //XSCOPE_DECODE_EXTENSIONS_H
